@@ -1,9 +1,12 @@
 import requests
 import mysql.connector
 import time
+import argparse # Added for command-line arguments
+import json 
 
-# List of Shopify stores
-stores = [
+
+
+DEFAULT_STORES_LIST = [
     "https://www.allbirds.com",
     "https://www.brooklinen.com",
     "https://www.untuckit.com",
@@ -12,20 +15,54 @@ stores = [
     # Add more stores as needed
 ]
 
-# --- Database Configuration ---
-DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',         # Replace with your MySQL username
-    'password': '',         # Replace with your MySQL password (leave empty if root has no password)
+DEFAULT_DB_CONFIG = {
+    'host': 'localhost2',
+    'user': 'user',
+    'password': '',
     'database': 'shopify_data'
 }
+
+# --- Argument Parsing ---
+parser = argparse.ArgumentParser(description="Scrape product data from Shopify stores.")
+parser.add_argument("--db_host", type=str, default=DEFAULT_DB_CONFIG['host'],
+                    help=f"Database host (default: {DEFAULT_DB_CONFIG['host']})")
+parser.add_argument("--db_user", type=str, default=DEFAULT_DB_CONFIG['user'],
+                    help=f"Database user (default: {DEFAULT_DB_CONFIG['user']})")
+parser.add_argument("--db_password", type=str, default=DEFAULT_DB_CONFIG['password'],
+                    help="Database password (default: empty)")
+parser.add_argument("--db_name", type=str, default=DEFAULT_DB_CONFIG['database'],
+                    help=f"Database name (default: {DEFAULT_DB_CONFIG['database']})")
+parser.add_argument("--stores_list_json", type=str,
+                    default=json.dumps(DEFAULT_STORES_LIST),
+                    help='JSON string of store URLs, e.g., \'["https://store1.com", "https://store2.com"]\'')
+
+args = parser.parse_args()
+
+# --- Populate original variables with parsed or default values ---
+DB_CONFIG = {
+    'host': args.db_host,
+    'user': args.db_user,
+    'password': args.db_password,
+    'database': args.db_name
+}
+
+try:
+    print(args)
+    stores = json.loads(args.stores_list_json)
+    if not isinstance(stores, list):
+        print("Error: --stores_list_json must be a valid JSON list. Using default stores.")
+        stores = DEFAULT_STORES_LIST
+except json.JSONDecodeError:
+    print("Error: Invalid JSON format for --stores_list_json. Using default stores.")
+    stores = DEFAULT_STORES_LIST
+
 
 # --- HTTP Headers ---
 # It's good practice to set a User-Agent. You can customize this.
 REQUEST_HEADERS = {
-    'User-Agent': 'MyProductScraper/1.0 (contact:youremail@example.com; purpose:data collection for project XYZ)'
+    #'User-Agent': 'MyProductScraper/1.0 (contact:youremail@example.com; purpose:data collection for project XYZ)'
     # Or a common browser User-Agent:
-    # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'
+     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'
 }
 
 def db_connect():
