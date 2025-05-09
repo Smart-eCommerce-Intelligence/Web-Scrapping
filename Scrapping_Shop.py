@@ -2,22 +2,22 @@ import requests
 import mysql.connector
 import time
 import argparse # Added for command-line arguments
-import json 
+import json
 
-
-
-DEFAULT_STORES_LIST = [
+# --- Default Configurations (can be overridden by command-line arguments) ---
+DEFAULT_STORES_FILE = "stores.json" # Default filename for local execution
+DEFAULT_STORES_LIST_CONTENT = [ # Fallback content if file is bad or for testing
     "https://www.allbirds.com",
     "https://www.brooklinen.com",
     "https://www.untuckit.com",
     "https://tattly.com",
     "https://flowrette.com"
-    # Add more stores as needed
 ]
 
+
 DEFAULT_DB_CONFIG = {
-    'host': 'localhost2',
-    'user': 'user',
+    'host': 'localhost', # Changed from localhost2 for typical local setup
+    'user': 'root',      # Changed from user
     'password': '',
     'database': 'shopify_data'
 }
@@ -29,33 +29,46 @@ parser.add_argument("--db_host", type=str, default=DEFAULT_DB_CONFIG['host'],
 parser.add_argument("--db_user", type=str, default=DEFAULT_DB_CONFIG['user'],
                     help=f"Database user (default: {DEFAULT_DB_CONFIG['user']})")
 parser.add_argument("--db_password", type=str, default=DEFAULT_DB_CONFIG['password'],
-                    help="Database password (default: empty)")
+                    help="Database password (default: empty if not provided)") # Clarified help
 parser.add_argument("--db_name", type=str, default=DEFAULT_DB_CONFIG['database'],
                     help=f"Database name (default: {DEFAULT_DB_CONFIG['database']})")
-parser.add_argument("--stores_list_json", type=str,
-                    default=json.dumps(DEFAULT_STORES_LIST),
-                    help='JSON string of store URLs, e.g., \'["https://store1.com", "https://store2.com"]\'')
+# Changed argument for stores list to expect a file path
+parser.add_argument("--stores_file_path", type=str, default=DEFAULT_STORES_FILE,
+                    help=f"Path to the JSON file containing store URLs (default: {DEFAULT_STORES_FILE})")
 
 args = parser.parse_args()
+print(f"DEBUG: Parsed arguments: {args}") # Changed print message for clarity
 
 # --- Populate original variables with parsed or default values ---
 DB_CONFIG = {
     'host': args.db_host,
     'user': args.db_user,
-    'password': args.db_password,
+    'password': args.db_password, # This will be an empty string if "" is passed or no --db_password
     'database': args.db_name
 }
+print(f"DEBUG: DB_CONFIG set to: {DB_CONFIG}") # Changed print message
 
+# --- Load stores from the specified JSON file ---
+stores = [] # Initialize stores
 try:
-    print(args)
-    stores = json.loads(args.stores_list_json)
-    if not isinstance(stores, list):
-        print("Error: --stores_list_json must be a valid JSON list. Using default stores.")
-        stores = DEFAULT_STORES_LIST
+    print(f"DEBUG: Attempting to load stores from file: {args.stores_file_path}")
+    with open(args.stores_file_path, 'r') as f:
+        stores_data_from_file = json.load(f)
+    if isinstance(stores_data_from_file, list):
+        stores = stores_data_from_file
+        print(f"DEBUG: Stores loaded successfully from file: {stores}")
+    else:
+        print(f"Error: Content of '{args.stores_file_path}' is not a valid JSON list. Using default fallback content.")
+        stores = DEFAULT_STORES_LIST_CONTENT # Fallback
+except FileNotFoundError:
+    print(f"Error: Stores file '{args.stores_file_path}' not found. Using default fallback content.")
+    stores = DEFAULT_STORES_LIST_CONTENT # Fallback
 except json.JSONDecodeError:
-    print("Error: Invalid JSON format for --stores_list_json. Using default stores.")
-    stores = DEFAULT_STORES_LIST
-
+    print(f"Error: Invalid JSON format in '{args.stores_file_path}'. Using default fallback content.")
+    stores = DEFAULT_STORES_LIST_CONTENT # Fallback
+except Exception as e:
+    print(f"An unexpected error occurred while loading stores from '{args.stores_file_path}': {e}. Using default fallback content.")
+    stores = DEFAULT_STORES_LIST_CONTENT # Fallback:
 
 # --- HTTP Headers ---
 # It's good practice to set a User-Agent. You can customize this.
@@ -219,4 +232,7 @@ def main():
     print(f"\nDone scraping all stores. Total products affected (inserted/updated): {total_products_affected}")
 
 if __name__ == '__main__':
-    main()
+    if not stores: # Add a check here
+        print("Critical: No stores were loaded (neither from file nor default). Exiting before main logic.")
+    else:
+        main()
