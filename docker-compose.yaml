@@ -1,0 +1,19 @@
+# docker-compose.yaml
+services:
+  scrap:
+    build:
+      context: .
+    container_name: web_scraper_app
+    environment:
+      - DB_HOST=192.168.1.17 
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=test
+      - STORES_FILE_PATH_IN_CONTAINER=stores.json 
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+    name: web_scraping_network
