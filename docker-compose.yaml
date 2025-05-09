@@ -8,7 +8,7 @@ services:
       - DB_HOST=192.168.1.17 
       - DB_USER=root
       - DB_PASSWORD=password
-      - DB_NAME=test
+      - DB_NAME=Mahdi
       - STORES_FILE_PATH_IN_CONTAINER=stores.json 
     networks:
       - app_network
