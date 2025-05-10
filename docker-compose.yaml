@@ -1,9 +1,24 @@
-# docker-compose.yaml
+version: '3.8'
 services:
-  scrap:
+  woo_scraper:
     build:
-      context: .
-    container_name: web_scraper_app
+      context: woo
+      dockerfile: Dockerfile 
+    container_name: woo_scraper_app
+    environment:
+      - DB_HOST=192.168.1.17 
+      - DB_NAME=Mahdi
+      - DB_PASSWORD=password
+      - DB_USER=root 
+      - CATEGORIES_FILE=woo_stores.json
+    networks:
+      - app_network
+      
+  shopify_scraper:
+    build:
+      context: shopify
+      dockerfile: Dockerfile
+    container_name: shopify_scraper_app
     environment:
       - DB_HOST=192.168.1.17 
       - DB_USER=root
@@ -16,4 +31,3 @@ services:
 networks:
   app_network:
     driver: bridge
-    name: web_scraping_network
