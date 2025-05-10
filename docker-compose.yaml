@@ -6,11 +6,11 @@ services:
       dockerfile: Dockerfile 
     container_name: woo_scraper_app
     environment:
-      - DB_HOST=192.168.1.17 
-      - DB_NAME=Mahdi
-      - DB_PASSWORD=password
-      - DB_USER=root 
-      - CATEGORIES_FILE=woo_stores.json
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}  
+      - DB_NAME=${WOO_DB_NAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CATEGORIES_FILE=${CATEGORIES_FILE}
     networks:
       - app_network
       
@@ -20,11 +20,11 @@ services:
       dockerfile: Dockerfile
     container_name: shopify_scraper_app
     environment:
-      - DB_HOST=192.168.1.17 
-      - DB_USER=root
-      - DB_PASSWORD=password
-      - DB_NAME=web_scrap_db
-      - STORES_FILE_PATH_IN_CONTAINER=stores.json 
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${SHOPIFY_DB_NAME}
+      - STORES_FILE_PATH_IN_CONTAINER=${STORES_FILE_PATH_IN_CONTAINER}
     networks:
       - app_network
 
