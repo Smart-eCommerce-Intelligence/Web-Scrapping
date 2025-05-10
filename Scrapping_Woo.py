@@ -8,7 +8,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'user': 'root', # Replace with your MySQL username
     'password': '', # Replace with your MySQL password
-    'database': 'web_scraping_db' # The database for WooCommerce/Barefoot data
+    'database': 'Mahdi' # The database for WooCommerce/Barefoot data
 }
 
 # --- Configuration for Barefoot Buttons Categories ---
