@@ -8,7 +8,7 @@ import json     # Added for loading categories from JSON
 # --- Default Configurations (can be overridden by command-line arguments) ---
 DEFAULT_DB_CONFIG = {
     'host': 'localhost',
-    'user': 'root2',
+    'user': 'root',
     'password': '',
     'database': 'web_scraping_db' # Default DB for WooCommerce/Barefoot data
 }
