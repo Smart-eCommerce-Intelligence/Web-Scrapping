@@ -1,49 +1,80 @@
+# woo-scraper-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: woo-scraper
+  name: woo-scraper-api # Consistent naming
   labels:
-    app: woo-scraper
+    app: woo-scraper-api # Label for service selector
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: woo-scraper
+      app: woo-scraper-api # Must match template labels
   template:
     metadata:
       labels:
-        app: woo-scraper
+        app: woo-scraper-api # Pods get this label
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Always
       containers:
-      - name: scraper
-        image: spamfake2022/woo-scraper:latest # Jenkins will update this tag
+      - name: woo-scraper # Container name
+        image: spamfake2022/woo-scraper:latest
         imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5002 # This should be derived from K8S_FLASK_PORT_WOO
         env:
-          - name: DB_HOST
+          - name: DB_HOST # For script's --db_host
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: DB_HOST
+                key: K8S_DB_HOST
           - name: DB_USER
             valueFrom:
               secretKeyRef:
                 name: mysql-credentials
                 key: username
-                optional: true
           - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: mysql-credentials
                 key: password
-          - name: DB_NAME # Script argument --db_name
+          - name: DB_NAME # For script's --db_name
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: WOO_DB_NAME
-          - name: CATEGORIES_FILE # Script argument --categories_file_path
+                key: K8S_WOO_DB_NAME
+          - name: CATEGORIES_FILE # For script's --categories_file_path
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: WOO_CATEGORIES_FILE
-        # Dockerfile CMD for woo-scraper uses these ENV VAR names
+                key: K8S_WOO_CATEGORIES_FILE
+          - name: FLASK_PORT_WOO # For script's internal Flask port
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: K8S_FLASK_PORT_WOO
+        resources: # Example
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: woo-scraper-api-service
+  labels:
+    app: woo-scraper-api # Match service selector
+spec:
+  type: ClusterIP # Internal service by default
+  selector:
+    app: woo-scraper-api # Selects pods with this label
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80 # Service listens on port 80
+    targetPort: http # Forwards to container's named port 'http' (which is 5002)
+    # Or directly: targetPort: 5002

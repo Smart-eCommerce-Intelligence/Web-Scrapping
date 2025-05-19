@@ -1,59 +1,78 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: shopify-scraper
+  name: shopify-scraper-api # Consistent naming
   labels:
-    app: shopify-scraper
+    app: shopify-scraper-api # Label for service selector
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: shopify-scraper
+      app: shopify-scraper-api # Must match template labels
   template:
     metadata:
       labels:
-        app: shopify-scraper
+        app: shopify-scraper-api # Pods get this label
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Always
       containers:
-      - name: scraper
-        image: spamfake2022/shop-scraper:latest # Jenkins will update this tag
+      - name: shopify-scraper # Container name
+        image: spamfake2022/shop-scraper:latest
         imagePullPolicy: IfNotPresent
+        ports:
+        - name: http # Naming the port is good practice
+          containerPort: 5001 # This should be derived from K8S_FLASK_PORT_SHOPIFY
         env:
-          # Common DB settings from ConfigMap
-          - name: DB_HOST
+          - name: DB_HOST # This ENV var is used by Dockerfile CMD for --db_host
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: DB_HOST
-          # DB User from Secret (or ConfigMap if not sensitive)
+                key: K8S_DB_HOST
           - name: DB_USER
             valueFrom:
               secretKeyRef:
                 name: mysql-credentials
-                key: username # Assumes you added 'username' to the secret
-                optional: true # Make it optional, script will use its default if not found
-          # If DB_USER is not sensitive, use ConfigMap:
-          # - name: DB_USER
-          #   value: "root" # Or from ConfigMap if you add DB_USER there
-
-          # DB Password from Secret
+                key: username
           - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: mysql-credentials
                 key: password
-          # Shopify Scraper specific settings from ConfigMap
-          - name: DB_NAME # Script argument --db_name
+          - name: DB_NAME # For script's --db_name
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: SHOP_DB_NAME 
-          - name: STORES_FILE_PATH_IN_CONTAINER # Script argument --stores_file_path
+                key: K8S_SHOP_DB_NAME
+          - name: STORES_FILE_PATH # For script's --stores_file_path
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: SHOP_STORES_FILE
-        # The Dockerfile CMD for shop-scraper uses these ENV VAR names
-        # to pass to the script's --arguments.
-        # Example: CMD python ./Scrapping_Shop.py --db_host "$DB_HOST" --db_name "$DB_NAME" ...
+                key: K8S_SHOP_STORES_FILE
+          - name: FLASK_PORT # For script's internal Flask port (e.g., os.environ.get)
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: K8S_FLASK_PORT_SHOPIFY
+        resources: # Example resource requests/limits
+          requests:
+            cpu: "100m" # 0.1 CPU core
+            memory: "128Mi"
+          limits:
+            cpu: "500m" # 0.5 CPU core
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopify-scraper-api-service
+  labels:
+    app: shopify-scraper-api # Match service selector
+spec:
+  type: ClusterIP # Internal service by default
+  selector:
+    app: shopify-scraper-api # Selects pods with this label
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80 # Service listens on port 80 (common for HTTP)
+    targetPort: http # Forwards to the container's named port 'http' (which is 5001)
