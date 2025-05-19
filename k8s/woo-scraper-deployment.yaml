@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: woo-scraper
+  labels:
+    app: woo-scraper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: woo-scraper
+  template:
+    metadata:
+      labels:
+        app: woo-scraper
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: scraper
+        image: spamfake2022/woo-scraper:latest # Jenkins will update this tag
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: DB_HOST
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials
+                key: username
+                optional: true
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials
+                key: password
+          - name: DB_NAME # Script argument --db_name
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: WOO_DB_NAME
+          - name: CATEGORIES_FILE # Script argument --categories_file_path
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: WOO_CATEGORIES_FILE
+        # Dockerfile CMD for woo-scraper uses these ENV VAR names

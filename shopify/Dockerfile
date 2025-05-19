@@ -1,4 +1,4 @@
-FROM python:3.11 
+FROM python:3.11.12-slim-bullseye
 
 WORKDIR /app
 
@@ -18,6 +18,10 @@ ENV DB_USER_DEFAULT="root"
 ENV DB_PASSWORD_DEFAULT=""
 ENV DB_NAME_DEFAULT="scrap_db"
 ENV STORES_FILE_PATH_DEFAULT="stores.json"
+ENV FLASK_PORT="5001" 
+
+EXPOSE ${FLASK_PORT}
+
 
 # Use shell form of CMD to allow environment variable expansion.
 CMD python ./Scrapping_Shop.py \

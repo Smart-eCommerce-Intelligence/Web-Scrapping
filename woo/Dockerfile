@@ -1,5 +1,4 @@
-# Dockerfile_Woo
-FROM python:3.11
+FROM python:3.11.12-slim-bullseye
 WORKDIR /app
 COPY requirements.txt . 
 
@@ -12,8 +11,13 @@ ENV DB_HOST_DEFAULT="host.docker.internal"
 ENV DB_NAME_DEFAULT="web_scrapdb"
 ENV DB_PASSWORD_DEFAULT=""
 ENV DB_USER_DEFAULT="root"
-
 ENV CATEGORIES_FILE_DEFAULT="woo_stores.json"
+ENV FLASK_PORT_WOO="5002" 
+
+
+EXPOSE ${FLASK_PORT_WOO}
+
+
 
 CMD python ./Scrapping_Woo.py \
     --db_host "${DB_HOST:-$DB_HOST_DEFAULT}" \

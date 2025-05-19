@@ -1,33 +1,71 @@
-version: '3.8'
+version: '3.8' # This version tag is becoming obsolete but still works
+
 services:
   woo_scraper:
     build:
-      context: woo
-      dockerfile: Dockerfile 
+      context: ./woo  # Assuming 'woo' is a subdirectory with Dockerfile & script
+      dockerfile: Dockerfile
+    image: spamfake2022/woo-scraper:latest # Will try to pull, then build if not found/forced
     container_name: woo_scraper_app
+    ports:
+      # Maps <host_port>:<container_port>
+      # The container_port should match what the Flask app inside is listening on
+      - "${HOST_PORT_WOO:-5002}:${FLASK_PORT_WOO:-5002}"
     environment:
       - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}  
+      - DB_USER=${DB_USER}
       - DB_NAME=${WOO_DB_NAME}
       - DB_PASSWORD=${DB_PASSWORD}
-      - CATEGORIES_FILE=${CATEGORIES_FILE}
+      - CATEGORIES_FILE_PATH_IN_CONTAINER=${WOO_CATEGORIES_FILE:-barefoot_categories.json} # Match script arg, provide default filename
+      - FLASK_PORT_WOO=${FLASK_PORT_WOO:-5002} # Ensure Flask app uses this port
     networks:
       - app_network
-      
+
   shopify_scraper:
     build:
-      context: shopify
+      context: ./shopify # Assuming 'shopify' is a subdirectory
       dockerfile: Dockerfile
+    image: spamfake2022/shop-scraper:latest
     container_name: shopify_scraper_app
+    ports:
+      - "${HOST_PORT_SHOPIFY:-5001}:${FLASK_PORT_SHOPIFY:-5001}"
     environment:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${SHOPIFY_DB_NAME}
-      - STORES_FILE_PATH_IN_CONTAINER=${STORES_FILE_PATH_IN_CONTAINER}
+      - STORES_FILE_PATH_IN_CONTAINER=${SHOPIFY_STORES_FILE:-stores.json} # Match script arg, provide default filename
+      - FLASK_PORT_SHOPIFY=${FLASK_PORT_SHOPIFY:-5001} # Ensure Flask app uses this port
     networks:
       - app_network
+
+  # You might add your Analyzer service here as well
+  # analyzer:
+  #   build:
+  #     context: ./analyzer
+  #     dockerfile: Dockerfile
+  #   image: spamfake2022/product-analyzer:latest # Example image name
+  #   container_name: product_analyzer_app
+  #   ports:
+  #     - "${HOST_PORT_ANALYZER:-5003}:${FLASK_PORT_ANALYZER:-5003}" # If it also has a Flask API
+  #   environment:
+  #     - DB_HOST=${DB_HOST}
+  #     - DB_USER=${DB_USER}
+  #     - DB_PASSWORD=${DB_PASSWORD}
+  #     - DB_NAME_SHOPIFY=${SHOPIFY_DB_NAME}   # Needs access to scraper output DBs
+  #     - DB_NAME_WOOCOMMERCE=${WOO_DB_NAME} #
+  #     - DB_NAME_ANALYSIS=${ANALYSIS_DB_NAME} # Where it writes its results
+  #     - TOP_K_OVERALL=${TOP_K_OVERALL:-20}
+  #     # ... other analyzer params ...
+  #     - FLASK_PORT_ANALYZER=${FLASK_PORT_ANALYZER:-5003}
+  #   networks:
+  #     - app_network
+  #   depends_on: # Optional: if you want scrapers to ideally finish before analyzer runs via API
+  #     - woo_scraper # This doesn't guarantee completion, just startup order
+  #     - shopify_scraper
+
 
 networks:
   app_network:
     driver: bridge
+    name: web_scraping_services_network # Giving the network a more descriptive name

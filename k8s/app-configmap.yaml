@@ -1,0 +1,28 @@
+# app-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-configs
+data:
+  # --- Common DB Settings ---
+  DB_HOST: "192.168.3.48" # For MySQL on host when running in Minikube
+
+  # --- Shopify Scraper Specific ---
+  SHOP_DB_NAME: "scrap_test" # Example: specific DB name
+  SHOP_STORES_FILE: "stores.json"    # Filename inside the container
+  FLASK_PORT_SHOPIFY: "5001" # Port Flask app listens on INSIDE container
+
+  # --- WooCommerce Scraper Specific ---
+  WOO_DB_NAME: "scrap_test"   # Example: specific DB name
+  WOO_CATEGORIES_FILE: "woo_stores.json" # Filename inside the container
+  FLASK_PORT_WOO: "5002" # Port Flask app listens on INSIDE container
+
+  # --- Analyzer Specific ---
+  ANLZ_DB_NAME_SHOPIFY: "scrap_test_shopify" # Must match what shopify scraper uses
+  ANLZ_DB_NAME_WOOCOMMERCE: "scrap_test" # Must match what woo scraper uses
+  ANLZ_DB_NAME_ANALYSIS: "scrap_analyse"
+  ANLZ_TOP_K_OVERALL: "20"
+  ANLZ_FLAGSHIP_PER_STORE: "3"
+  ANLZ_WEIGHT_AVAILABILITY: "0.6"
+  ANLZ_WEIGHT_PRICE: "0.4"
+  ANLZ_DB_BATCH_SIZE: "500"

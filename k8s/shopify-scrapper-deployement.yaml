@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopify-scraper
+  labels:
+    app: shopify-scraper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopify-scraper
+  template:
+    metadata:
+      labels:
+        app: shopify-scraper
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: scraper
+        image: spamfake2022/shop-scraper:latest # Jenkins will update this tag
+        imagePullPolicy: IfNotPresent
+        env:
+          # Common DB settings from ConfigMap
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: DB_HOST
+          # DB User from Secret (or ConfigMap if not sensitive)
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials
+                key: username # Assumes you added 'username' to the secret
+                optional: true # Make it optional, script will use its default if not found
+          # If DB_USER is not sensitive, use ConfigMap:
+          # - name: DB_USER
+          #   value: "root" # Or from ConfigMap if you add DB_USER there
+
+          # DB Password from Secret
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials
+                key: password
+          # Shopify Scraper specific settings from ConfigMap
+          - name: DB_NAME # Script argument --db_name
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: SHOP_DB_NAME 
+          - name: STORES_FILE_PATH_IN_CONTAINER # Script argument --stores_file_path
+            valueFrom:
+              configMapKeyRef:
+                name: app-configs
+                key: SHOP_STORES_FILE
+        # The Dockerfile CMD for shop-scraper uses these ENV VAR names
+        # to pass to the script's --arguments.
+        # Example: CMD python ./Scrapping_Shop.py --db_host "$DB_HOST" --db_name "$DB_NAME" ...
