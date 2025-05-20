@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-service
+spec:
+  rules:
+  - host: dashboard2025.com 
+    http:
+      paths:
+      - path: /run_shopify_scrape
+        pathType: Prefix
+        backend:
+          service:
+            name: shopify-scraper-api-service
+            port:
+              number: 80
+      - path: /run_woo_scrape
+        pathType: Prefix
+        backend:
+          service:
+            name: woo-scraper-api-service 
+            port:
+              number: 80

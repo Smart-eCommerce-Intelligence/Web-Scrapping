@@ -18,16 +18,16 @@ spec:
       containers:
       - name: shopify-scraper # Container name
         image: spamfake2022/shop-scraper:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
-        - name: http # Naming the port is good practice
-          containerPort: 5001 # This should be derived from K8S_FLASK_PORT_SHOPIFY
+        - name: http 
+          containerPort: 5001 
         env:
-          - name: DB_HOST # This ENV var is used by Dockerfile CMD for --db_host
+          - name: DB_HOST 
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_DB_HOST
+                key: DB_HOST
           - name: DB_USER
             valueFrom:
               secretKeyRef:
@@ -38,28 +38,28 @@ spec:
               secretKeyRef:
                 name: mysql-credentials
                 key: password
-          - name: DB_NAME # For script's --db_name
+          - name: DB_NAME
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_SHOP_DB_NAME
-          - name: STORES_FILE_PATH # For script's --stores_file_path
+                key: SHOP_DB_NAME
+          - name: STORES_FILE_PATH_IN_CONTAINER 
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_SHOP_STORES_FILE
-          - name: FLASK_PORT # For script's internal Flask port (e.g., os.environ.get)
+                key: SHOP_STORES_FILE
+          - name: FLASK_PORT_SHOPIFY 
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_FLASK_PORT_SHOPIFY
-        resources: # Example resource requests/limits
+                key: FLASK_PORT_SHOPIFY
+        resources: # Example
           requests:
-            cpu: "100m" # 0.1 CPU core
-            memory: "128Mi"
+            cpu: "50m"
+            memory: "70Mi"
           limits:
-            cpu: "500m" # 0.5 CPU core
-            memory: "512Mi"
+            cpu: "500m"
+            memory: "500Mi"
 ---
 apiVersion: v1
 kind: Service

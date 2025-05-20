@@ -19,7 +19,7 @@ spec:
       containers:
       - name: woo-scraper # Container name
         image: spamfake2022/woo-scraper:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - name: http
           containerPort: 5002 # This should be derived from K8S_FLASK_PORT_WOO
@@ -28,7 +28,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_DB_HOST
+                key: DB_HOST
           - name: DB_USER
             valueFrom:
               secretKeyRef:
@@ -43,24 +43,24 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_WOO_DB_NAME
+                key: WOO_DB_NAME
           - name: CATEGORIES_FILE # For script's --categories_file_path
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_WOO_CATEGORIES_FILE
+                key: WOO_CATEGORIES_FILE
           - name: FLASK_PORT_WOO # For script's internal Flask port
             valueFrom:
               configMapKeyRef:
                 name: app-configs
-                key: K8S_FLASK_PORT_WOO
+                key: FLASK_PORT_WOO
         resources: # Example
           requests:
-            cpu: "100m"
-            memory: "128Mi"
+            cpu: "50m"
+            memory: "70Mi"
           limits:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "500Mi"
 ---
 apiVersion: v1
 kind: Service

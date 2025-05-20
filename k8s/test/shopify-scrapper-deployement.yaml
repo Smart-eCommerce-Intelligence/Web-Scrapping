@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopify-scraper-api-service
+  labels:
+    app: shopify-scraper-api # Match service selector
+spec:
+  type: LoadBalancer # Internal service by default
+  selector:
+    app: shopify-scraper-api # Selects pods with this label
+  ports:
+    - port: 5001
+      targetPort: 5001
+  # ports:
+  # - name: http
+  #   protocol: TCP
+  #   port: 80 # Service listens on port 80 (common for HTTP)
+  #   targetPort: http # Forwards to the container's named port 'http' (which is 5001)

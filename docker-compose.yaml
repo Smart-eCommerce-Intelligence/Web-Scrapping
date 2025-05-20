@@ -1,5 +1,3 @@
-version: '3.8' # This version tag is becoming obsolete but still works
-
 services:
   woo_scraper:
     build:
