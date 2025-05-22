@@ -21,3 +21,10 @@ spec:
             name: woo-scraper-api-service 
             port:
               number: 80
+      - path: /run_analysis
+        pathType: Prefix
+        backend:
+          service:
+            name: product-analyzer-svc
+            port:
+              number: 80

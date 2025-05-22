@@ -1,0 +1,125 @@
+name: CI/CD for Web-Scrapping
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  # Define image names centrally, including your Docker Hub username
+  # Ensure these match your repositories on Docker Hub
+  SHOPIFY_IMAGE_REPO: spamfake2022/shop-scraper # Your Docker Hub username / repo name
+  WOO_IMAGE_REPO: spamfake2022/woo-scraper     # Your Docker Hub username / repo name
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: [self-hosted, Linux, minikube-local] # Runner needs Docker installed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Shopify Scrapper Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./shopify # Path to the Dockerfile directory for Shopify
+          file: ./shopify/Dockerfile
+          push: true
+          tags: ${{ env.SHOPIFY_IMAGE_REPO }}:latest # e.g., spamfake2022/shop-scraper:latest
+
+      - name: Build and push Woo Scrapper Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./woo # Path to the Dockerfile directory for Woo
+          file: ./woo/Dockerfile
+          push: true
+          tags: ${{ env.WOO_IMAGE_REPO }}:latest # e.g., spamfake2022/woo-scraper:latest
+
+      - name: List local Docker images (host Docker)
+        run: |
+          echo "Images built on host Docker:"
+          docker images | grep -E "${{ env.SHOPIFY_IMAGE_REPO }}|${{ env.WOO_IMAGE_REPO }}"
+
+  deploy-to-minikube:
+    name: Deploy to Minikube
+    runs-on: [self-hosted, Linux, minikube-local] # Runner needs kubectl
+    needs: build-and-push # This job runs only if 'build-and-push' job succeeds
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Deploy only on push to main
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Ensure Kubernetes context is Minikube
+        run: |
+          kubectl config use-context kfp-cluster
+          kubectl config current-context
+
+      - name: Apply K8s ConfigMap
+        run: kubectl apply -f k8s/app-configmap.yaml
+
+      - name: Apply K8s DB Credentials Secret
+        run: kubectl apply -f k8s/db-credentials.yaml
+
+      - name: Apply K8s Shopify Scrapper Deployment and Service
+        run: |
+          # The image name in the YAML MUST match ${{ env.SHOPIFY_IMAGE_REPO }}
+          # imagePullPolicy should be Always or IfNotPresent (Always is better to ensure fresh image from registry)
+          echo "Applying Shopify Scrapper K8s manifests (pulling from ${{ env.SHOPIFY_IMAGE_REPO }}:latest)..."
+          kubectl apply -f k8s/shopify-scrapper-deployement.yaml
+
+      - name: Apply K8s Woo Scrapper Deployment and Service
+        run: |
+          # The image name in the YAML MUST match ${{ env.WOO_IMAGE_REPO }}
+          # imagePullPolicy should be Always or IfNotPresent
+          echo "Applying Woo Scrapper K8s manifests (pulling from ${{ env.WOO_IMAGE_REPO }}:latest)..."
+          kubectl apply -f k8s/woo-scraper-deployment.yaml
+
+      - name: Apply K8s Ingress
+        run: |
+          echo "Applying Ingress..."
+          kubectl apply -f k8s/ingress.yaml
+
+      - name: Wait for deployments to be ready
+        run: |
+          echo "Waiting for Shopify deployment..."
+          kubectl rollout status deployment/shopify-scraper-api --timeout=180s
+          kubectl wait --for=condition=available deployment/shopify-scraper-api --timeout=180s
+          echo "Waiting for Woo deployment..."
+          kubectl rollout status deployment/woo-scraper-api --timeout=180s
+          kubectl wait --for=condition=available deployment/woo-scraper-api --timeout=180s
+
+      - name: Verify Deployments and Services
+        run: |
+          echo "--- Pods ---"
+          kubectl get pods -l app=shopify-scraper-api
+          kubectl get pods -l app=woo-scraper-api
+          echo "--- Services ---"
+          kubectl get services -l app=shopify-scraper-api
+          kubectl get services -l app=woo-scraper-api
+          echo "--- Ingress ---"
+          kubectl get ingress ingress-service
+          echo "--- Endpoints for Shopify ---"
+          kubectl get endpoints shopify-scraper-api-service
+          echo "--- Endpoints for Woo ---"
+          kubectl get endpoints woo-scraper-api-service
+          echo "--- Describe Pods for Image Check (Shopify) ---"
+          kubectl describe pods -l app=shopify-scraper-api
+          echo "--- Describe Pods for Image Check (Woo) ---"
+          kubectl describe pods -l app=woo-scraper-api
+
+      - name: Check Ingress
+        run: |
+          echo "To access via Ingress 'dashboard2025.com', ensure 'minikube tunnel' is running in another terminal,"
+          echo "or your Minikube Ingress controller is properly configured and you have DNS/hosts entry."
+          echo "You might also need to enable the ingress addon: minikube -p kfp-cluster addons enable ingress"
