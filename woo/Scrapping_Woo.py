@@ -249,6 +249,30 @@ def run_woo_scraper_logic(cmd_args):
 
     cursor = db_connection.cursor()
     create_barefoot_table_if_not_exists(cursor)
+    
+    try:
+        delete_query = "DELETE FROM barefoot_products" # Deletes all rows
+        # You could also use TRUNCATE TABLE barefoot_products for potentially faster deletion
+        # delete_query = "TRUNCATE TABLE barefoot_products"
+        
+        cursor.execute(delete_query)
+        deleted_rows_count = cursor.rowcount
+        db_connection.commit() # Commit the delete operation
+        print(f"(Woo Scraper Logic) DELETED {deleted_rows_count} existing product entries from the 'barefoot_products' table.")
+    except mysql.connector.Error as err:
+        print(f"Error deleting all data from 'barefoot_products' table: {err}")
+        # CRITICAL: Decide if you want to stop if deletion fails.
+        if cursor: cursor.close()
+        if db_connection and db_connection.is_connected(): db_connection.close()
+        return {"status": "error", "message": f"Failed to clear barefoot_products table: {err}"}
+    except Exception as e_del:
+        print(f"Unexpected error during data deletion: {e_del}")
+        if cursor: cursor.close()
+        if db_connection and db_connection.is_connected(): db_connection.close()
+        return {"status": "error", "message": f"Unexpected error clearing barefoot_products table: {e_del}"}
+    # --- End of NEW deletion logic ---
+    
+    
     cursor.close() # Close cursor after table creation, new ones will be opened by insert_product_data
 
     total_products_processed_for_db = 0

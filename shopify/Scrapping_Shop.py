@@ -55,7 +55,6 @@ def db_connect(current_db_config): # <<<< NOW ACCEPTS current_db_config
 
 
 def create_table_if_not_exists(cursor):
-    # ... (your existing table creation logic) ...
     try:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS products (
@@ -116,6 +115,31 @@ def run_shopify_scraper_logic(cmd_args): # cmd_args comes from the global script
     cursor = db_connection.cursor()
     create_table_if_not_exists(cursor)
     total_products_affected = 0
+    
+    try:
+        delete_query = "DELETE FROM products" # Deletes all rows
+        # For safety, you could use TRUNCATE TABLE products for faster deletion if no FK constraints,
+        # but DELETE is generally safer and logs individual row deletions if binlog is enabled.
+        # delete_query = "TRUNCATE TABLE products" # Alternative, typically faster, resets AUTO_INCREMENT
+        
+        cursor.execute(delete_query)
+        deleted_rows_count = cursor.rowcount
+        db_connection.commit() # Commit the delete operation
+        print(f"(Scraper Logic) DELETED {deleted_rows_count} existing product entries from the 'products' table.")
+    except mysql.connector.Error as err:
+        print(f"Error deleting all data from 'products' table: {err}")
+        # CRITICAL: Decide if you want to stop if deletion fails.
+        # It might be safer to stop to avoid inserting into a table with old data.
+        if cursor: cursor.close()
+        if db_connection and db_connection.is_connected(): db_connection.close()
+        return {"status": "error", "message": f"Failed to clear products table: {err}"}
+    except Exception as e_del:
+        print(f"Unexpected error during data deletion: {e_del}")
+        if cursor: cursor.close()
+        if db_connection and db_connection.is_connected(): db_connection.close()
+        return {"status": "error", "message": f"Unexpected error clearing products table: {e_del}"}
+    # --- End of NEW deletion logic ---
+
 
     for base_url in stores:
         store_name_parts = base_url.replace("https://www.", "").replace("https://", "").split('.')
