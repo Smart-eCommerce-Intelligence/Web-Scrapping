@@ -5,7 +5,7 @@ metadata:
   name: app-configs
 data:
   # --- Common DB Settings ---
-  DB_HOST: "192.168.3.224" # For MySQL on host when running in Minikube
+  DB_HOST: "192.168.3.161" # For MySQL on host when running in Minikube
 
   # --- Shopify Scraper Specific ---
   SHOP_DB_NAME: "scrap_test" # Example: specific DB name

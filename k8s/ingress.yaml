@@ -28,3 +28,10 @@ spec:
             name: product-analyzer-svc
             port:
               number: 80
+      - path: / 
+        pathType: Prefix
+        backend:
+          service:
+            name: streamlit-dashboard-svc
+            port:
+              number: 80
